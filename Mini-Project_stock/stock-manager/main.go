@@ -45,6 +45,7 @@ func main() {
 	ug.GET("/verify", controllers.VerifyUser)  // TEST-OK
 	ug.GET("/get/:email", controllers.GetUser) // TEST-OK
 	ug.GET("/list", controllers.ListUsers)     // TEST-OK
+	ug.POST("/delete", controllers.DeleteUser) // TEST-OK
 
 	r.Run()
 }

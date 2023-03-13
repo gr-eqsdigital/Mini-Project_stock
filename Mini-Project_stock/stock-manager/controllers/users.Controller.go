@@ -50,7 +50,7 @@ func Signup(c *gin.Context) {
 		Email:    body.Email,
 		Password: string(hash),
 	}
-	result := initializers.DB.Debug().Create(&user)
+	result := initializers.DB.Create(&user)
 
 	if result.Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -58,8 +58,9 @@ func Signup(c *gin.Context) {
 		})
 		return
 	}
+
 	// Responde request
-	c.JSON(http.StatusOK, gin.H{})
+	c.JSON(http.StatusOK, user.ID)
 }
 
 func Login(c *gin.Context) {
@@ -204,9 +205,23 @@ func GetUser(c *gin.Context) {
 		})
 	}
 
+	var responseDTO = struct {
+		ID    uint   `json:"id"`
+		Fname string `json:"fname"`
+		Lname string `json:"lname"`
+		Phone string `json:"phone"`
+		Email string `json:"email" gorm:"unique"`
+	}{
+		ID:    user.ID,
+		Fname: user.Fname,
+		Lname: user.Lname,
+		Phone: user.Phone,
+		Email: user.Email,
+	}
+
 	// Send it back
 	c.JSON(http.StatusOK, gin.H{
-		"message": user,
+		"message": responseDTO,
 	})
 }
 
@@ -271,6 +286,48 @@ func UpdateUser(c *gin.Context) {
 		"message": usr,
 		"map":     mp,
 	})
+}
+
+func DeleteUser(c *gin.Context) {
+	// delete user profile
+
+	// declare body to send post request
+	var requestDTO = struct {
+		ID uint `json:"id"`
+	}{}
+
+	if c.Bind(&requestDTO) != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Failed to read body",
+		})
+		return
+	}
+
+	// check if the user exists
+	var user models.User
+	initializers.DB.First(&user, "id = ?", requestDTO.ID)
+	if user.ID == 0 {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"errpr": "Invalid user ID",
+		})
+		return
+	}
+
+	// delete user from DB
+	var conn = initializers.DB.Where("id = ?", requestDTO.ID).Delete(&models.User{})
+	if conn.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Failed to delete user",
+			"error":   conn.Error,
+		})
+		return
+	}
+
+	// Send it back
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User deleted successfully.",
+	})
+
 }
 
 func CreateProductCategory(c *gin.Context) {
